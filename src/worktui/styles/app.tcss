@@ -32,6 +32,15 @@ DetailPane {
     border-top: solid $accent;
 }
 
+WorkspacePanel {
+    height: auto;
+    max-height: 50%;
+    dock: bottom;
+    padding: 0 1;
+    border-top: solid $accent;
+    display: none;
+}
+
 StatusBar {
     height: 1;
     dock: bottom;

@@ -17,10 +17,12 @@ from worktui.config import GITHUB_REPO, LINEAR_API_KEY, POLL_INTERVAL, load_sett
 from worktui.models import WorkItem
 from worktui.services.cache import load_cache
 from worktui.services.poller import poll_once
+from worktui.services.workspace import scan_workspace
 from worktui.widgets.detail_pane import DetailPane
 from worktui.widgets.filter_bar import FilterBar
 from worktui.widgets.item_table import ItemTable
 from worktui.widgets.status_bar import StatusBar
+from worktui.widgets.workspace_panel import WorkspacePanel
 
 SORT_MODES = ["PR Status", "Activity", "Linear Status", "Type"]
 AGENTS = ["claude", "codex"]
@@ -65,6 +67,7 @@ HELP_TEXT = """\
   I        Launch AI implement (Linear tickets)
   r        Force refresh
   S        Settings
+  w        Toggle workspace panel
   ?        Toggle this help
   q        Quit
 """
@@ -133,6 +136,7 @@ class WorkTuiApp(App[None]):
         Binding("x", "toggle_star", "Star", show=False),
         Binding("r", "refresh", "Refresh", show=False),
         Binding("S", "settings", "Settings", show=False, key_display="shift+s"),
+        Binding("w", "toggle_workspace", "Workspace", show=False),
     ]
 
     _all_items: list[WorkItem]
@@ -142,6 +146,7 @@ class WorkTuiApp(App[None]):
     _sort_mode: int
     _poll_countdown: int
     _agent_mode: int
+    _workspace_visible: bool
 
     def __init__(self) -> None:
         super().__init__()
@@ -152,11 +157,13 @@ class WorkTuiApp(App[None]):
         self._sort_mode = 0
         self._poll_countdown = 0
         self._agent_mode = 0
+        self._workspace_visible = False
 
     def compose(self) -> ComposeResult:
         yield FilterBar()
         yield ItemTable(id="item-table")
         yield DetailPane(id="detail-pane")
+        yield WorkspacePanel(id="workspace-panel")
         yield StatusBar(id="status-bar")
 
     def on_mount(self) -> None:
@@ -183,6 +190,8 @@ class WorkTuiApp(App[None]):
         if self._poll_countdown <= 0:
             self._do_refresh()
             self._poll_countdown = POLL_INTERVAL
+            if self._workspace_visible:
+                self._do_workspace_scan()
         self._update_status_bar()
 
     @work(exclusive=True)
@@ -406,12 +415,31 @@ class WorkTuiApp(App[None]):
 
         self.push_screen(SettingsScreen(), callback=_on_dismiss)
 
+    def action_toggle_workspace(self) -> None:
+        self._workspace_visible = not self._workspace_visible
+        detail = self.query_one(DetailPane)
+        panel = self.query_one(WorkspacePanel)
+        if self._workspace_visible:
+            detail.display = False
+            panel.display = True
+            self._do_workspace_scan()
+        else:
+            panel.display = False
+            detail.display = True
+
+    @work(group="workspace")
+    async def _do_workspace_scan(self) -> None:
+        repos = await scan_workspace()
+        self.query_one(WorkspacePanel).update_workspace(repos)
+
     def _has_modal(self) -> bool:
         return len(self.screen_stack) > 1
 
     def action_maybe_quit(self) -> None:
         if self._has_modal():
             self.screen.dismiss()
+        elif self._workspace_visible:
+            self.action_toggle_workspace()
         else:
             self.exit()
 

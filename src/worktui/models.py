@@ -69,6 +69,29 @@ def infer_pr_status(state: str, is_draft: bool, review_decision: str, has_review
 
 
 @dataclass
+class AISession:
+    pid: int
+    agent: str  # "claude" or "codex"
+    status: str  # "working" or "idle"
+
+
+@dataclass
+class RepoWorktree:
+    path: str
+    branch: str
+    dirty: bool
+    suffix: str  # e.g. "aaa" from courtyard-frontend-aaa, "" for main
+    session: AISession | None = None
+
+
+@dataclass
+class RepoInfo:
+    name: str
+    path: str
+    worktrees: list[RepoWorktree] = field(default_factory=list)
+
+
+@dataclass
 class WorkItem:
     issues: list[LinearIssue] = field(default_factory=list)
     prs: list[GitHubPR] = field(default_factory=list)
