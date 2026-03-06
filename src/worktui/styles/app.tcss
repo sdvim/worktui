@@ -1,0 +1,68 @@
+Screen {
+    layout: vertical;
+}
+
+FilterBar {
+    height: 1;
+    dock: top;
+}
+
+FilterBar #filter-input {
+    width: 1fr;
+    margin-right: 1;
+    border: none;
+    padding: 0;
+    height: 1;
+}
+
+FilterBar #view-mode {
+    width: auto;
+    min-width: 40;
+    content-align: right middle;
+}
+
+ItemTable {
+    height: 1fr;
+}
+
+DetailPane {
+    height: 5;
+    dock: bottom;
+    padding: 0 1;
+    border-top: solid $accent;
+}
+
+StatusBar {
+    height: 1;
+    dock: bottom;
+    padding: 0 1;
+    background: $surface;
+    color: $text-muted;
+}
+
+#help-overlay {
+    align: center middle;
+}
+
+#help-overlay > Static {
+    width: 50;
+    height: auto;
+    max-height: 20;
+    padding: 1 2;
+    border: solid $accent;
+    background: $surface;
+}
+
+#settings-overlay {
+    align: center middle;
+    width: 40;
+    height: auto;
+    max-height: 12;
+    padding: 1 2;
+    border: solid $accent;
+    background: $surface;
+}
+
+#settings-checks {
+    height: auto;
+}

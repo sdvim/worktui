@@ -1,0 +1,26 @@
+[project]
+name = "worktui"
+version = "0.1.0"
+description = "Linear + GitHub PR dashboard TUI"
+requires-python = ">=3.14"
+dependencies = [
+    "httpx>=0.28.1",
+    "textual>=8.0.2",
+    "watchfiles>=1.0.0",
+]
+
+[project.scripts]
+worktui = "worktui.app:main"
+dev = "worktui._dev:main"
+
+[dependency-groups]
+dev = [
+    "watchfiles>=1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/worktui"]
