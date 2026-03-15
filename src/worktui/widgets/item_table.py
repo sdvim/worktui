@@ -138,25 +138,28 @@ class ItemTable(DataTable):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self._work_items = []
+        self._last_width = 0
+        self._resize_timer = None
         self.cursor_type = "row"
         self.zebra_stripes = True
 
     # DataTable adds 1 char padding on each side of every cell (2 per column),
     # plus 1 char per column divider (n_cols - 1 dividers + potential border).
     _CELL_PADDING = 2  # per column
-    _N_COLS = 5
+    _N_COLS = 6
     _TABLE_OVERHEAD = _CELL_PADDING * _N_COLS + _N_COLS  # padding + dividers/border
 
     def _col_widths(self, items: list[WorkItem]) -> dict[str, int]:
         """Compute column widths: fixed cols fit content, Title gets the rest."""
         starred = load_starred()
         id_w = max((len(i.display_id) + (2 if i.star_id in starred else 0) for i in items), default=4)
+        project_w = max((len(i.project) for i in items), default=0)
         owner_w = max((len(_actionable_owner(i)) for i in items), default=5)
         status_w = max((len(self._status_text(i)) for i in items), default=6)
         activity_w = max((len(_activity_text(i)) for i in items), default=3)
         total = self.size.width or self.app.size.width
-        title_w = max(total - id_w - owner_w - status_w - activity_w - self._TABLE_OVERHEAD, 20)
-        return {"id": id_w, "owner": owner_w, "status": status_w, "activity": activity_w, "title": title_w}
+        title_w = max(total - id_w - project_w - owner_w - status_w - activity_w - self._TABLE_OVERHEAD, 20)
+        return {"id": id_w, "project": project_w, "owner": owner_w, "status": status_w, "activity": activity_w, "title": title_w}
 
     @staticmethod
     def _status_text(item: WorkItem) -> str:
@@ -173,26 +176,32 @@ class ItemTable(DataTable):
     def on_mount(self) -> None:
         self._id_col = self.add_column("ID", key="ID", width=8)
         self._title_col = self.add_column("Title", key="Title", width=40)
+        self._project_col = self.add_column("Project", key="Project", width=10)
         self._owner_col = self.add_column("Owner", key="Owner", width=8)
         self._status_col = self.add_column("Status", key="Status", width=20)
         self._activity_col = self.add_column("Activity", key="Activity", width=5)
-        self._resize_timer = None
 
     def on_resize(self) -> None:
+        width = self.size.width
+        if width == self._last_width:
+            return
         if self._resize_timer is not None:
             self._resize_timer.stop()
-        self._resize_timer = self.set_timer(0.3, self._apply_resize)
+        self._resize_timer = self.set_timer(0.1, self._apply_resize)
 
     def _apply_resize(self) -> None:
         self._resize_timer = None
-        if self._work_items:
-            self.update_items(self._work_items)
+        width = self.size.width
+        if width == self._last_width or not self._work_items:
+            return
+        self._last_width = width
+        self.update_items(self._work_items)
 
     def _sync_col_widths(self, items: list[WorkItem]) -> None:
         widths = self._col_widths(items)
         for key, attr in [("id", "_id_col"), ("title", "_title_col"),
-                          ("owner", "_owner_col"), ("status", "_status_col"),
-                          ("activity", "_activity_col")]:
+                          ("project", "_project_col"), ("owner", "_owner_col"),
+                          ("status", "_status_col"), ("activity", "_activity_col")]:
             col = self.columns.get(getattr(self, attr))
             if col:
                 col.width = widths[key]
@@ -201,6 +210,7 @@ class ItemTable(DataTable):
         cursor_row = self.cursor_row
         self.clear()
         self._work_items = items
+        self._last_width = self.size.width
         starred = load_starred()
 
         widths = self._col_widths(items) if items else None
@@ -225,9 +235,11 @@ class ItemTable(DataTable):
             if item.star_id in starred:
                 id_cell.append("\u2605 ", style="yellow")
             id_cell.append(item.display_id)
+            project = Text(item.project, style="dim") if item.project else Text("")
             self.add_row(
                 id_cell,
                 title,
+                project,
                 _actionable_owner(item),
                 status,
                 _styled_activity(item),

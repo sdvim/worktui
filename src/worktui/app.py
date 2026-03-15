@@ -271,13 +271,6 @@ class WorkTuiApp(App[None]):
         item = table.get_selected_item()
         self.query_one(DetailPane).update_item(item)
 
-    def on_resize(self) -> None:
-        try:
-            table = self.query_one(ItemTable)
-            table.on_resize()
-        except Exception:
-            pass
-
     def on_data_table_cursor_moved(self, _event) -> None:
         self._update_detail()
 

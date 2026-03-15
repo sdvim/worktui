@@ -11,6 +11,7 @@ class LinearIssue:
     status: str
     url: str
     priority: int
+    project: str = ""
     source: str = "linear"  # "linear" or "github"
     labels: list[str] = field(default_factory=list)
     updated_at: datetime | None = None
@@ -170,6 +171,12 @@ class WorkItem:
             if p.updated_at:
                 dates.append(p.updated_at)
         return max(dates) if dates else None
+
+    @property
+    def project(self) -> str:
+        if self.primary_issue:
+            return self.primary_issue.project
+        return ""
 
     @property
     def primary_url(self) -> str:

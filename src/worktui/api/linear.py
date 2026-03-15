@@ -26,6 +26,7 @@ query AssignedIssues {
         url
         updatedAt
         priority
+        project { name }
         labels { nodes { name } }
         attachments { nodes { url } }
       }
@@ -60,12 +61,16 @@ async def fetch_linear_issues() -> list[LinearIssue]:
         if n.get("updatedAt"):
             updated = datetime.fromisoformat(n["updatedAt"].replace("Z", "+00:00"))
 
+        project_node = n.get("project")
+        project_name = project_node["name"] if project_node else ""
+
         issues.append(LinearIssue(
             id=n["identifier"],
             title=n["title"],
             status=n["state"]["name"],
             url=n["url"],
             priority=n.get("priority", 0),
+            project=project_name,
             labels=[l["name"] for l in n.get("labels", {}).get("nodes", [])],
             updated_at=updated,
             attachment_urls=[a["url"] for a in n.get("attachments", {}).get("nodes", [])],
